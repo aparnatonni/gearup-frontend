@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 
@@ -18,7 +19,6 @@ export default function PaymentSuccessPage() {
 
   useEffect(() => {
     if (!orderId) {
-      setChecking(false);
       return;
     }
 
@@ -37,7 +37,7 @@ export default function PaymentSuccessPage() {
         Thank you! Your rental payment has been processed.
       </p>
 
-      {checking ? (
+      {checking && orderId ? (
         <p className="text-sm text-gray-500">Checking order status...</p>
       ) : order ? (
         <p className="text-sm">
@@ -45,9 +45,9 @@ export default function PaymentSuccessPage() {
         </p>
       ) : null}
 
-      <a href="/dashboard/customer/orders" className="inline-block mt-6 underline text-sm">
+      <Link href="/dashboard/customer/orders" className="mt-6 inline-block text-sm underline">
         View my orders
-      </a>
+      </Link>
     </div>
   );
 }

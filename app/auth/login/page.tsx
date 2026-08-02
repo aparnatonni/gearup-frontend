@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import { api } from '@/lib/api';
@@ -82,9 +83,9 @@ export default function LoginPage() {
 
       <p className="text-sm text-center mt-4">
         No account?{' '}
-        <a href="/auth/register" className="underline">
+        <Link href="/auth/register" className="underline">
           Register
-        </a>
+        </Link>
       </p>
     </div>
   );

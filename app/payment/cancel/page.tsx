@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function PaymentCancelPage() {
   return (
     <div className="max-w-md mx-auto mt-24 p-6 text-center">
@@ -6,9 +8,9 @@ export default function PaymentCancelPage() {
       <p className="text-gray-600 mb-6">
         Your payment was not completed. You can try again anytime from your orders page.
       </p>
-      <a href="/dashboard/customer/orders" className="inline-block underline text-sm">
+      <Link href="/dashboard/customer/orders" className="inline-block text-sm underline">
         Back to my orders
-      </a>
+      </Link>
     </div>
   );
 }

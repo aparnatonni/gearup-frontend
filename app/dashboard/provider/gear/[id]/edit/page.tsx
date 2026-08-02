@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 import { api } from "@/lib/api";
+import { useToast } from "@/components/Toast";
 import { Skeleton } from "@/components/Skeleton";
 
 type Category = {
@@ -10,8 +12,24 @@ type Category = {
   name: string;
 };
 
-export default function AddGearPage() {
+type GearItem = {
+  id: string;
+  name: string;
+  description?: string;
+  brand?: string;
+  pricePerDay: number;
+  quantity: number;
+  available: boolean;
+  images?: string[];
+  categoryId?: string;
+};
+
+export default function EditGearPage() {
+  const params = useParams();
   const router = useRouter();
+  const { toast } = useToast();
+  const gearId = params.id as string;
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [form, setForm] = useState({
     name: "",
@@ -20,26 +38,43 @@ export default function AddGearPage() {
     description: "",
     pricePerDay: "",
     quantity: "1",
+    available: true,
   });
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [imageInput, setImageInput] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    api
-      .get<Category[]>("/categories")
-      .then((res) => {
-        const cats = res.data || [];
-        setCategories(cats);
-        if (cats.length > 0) {
-          setForm((f) => ({ ...f, categoryId: cats[0].id }));
+    const token = Cookies.get("token");
+    if (!token) {
+      router.push("/auth/login");
+      return;
+    }
+
+    Promise.all([
+      api.get<GearItem>(`/provider/gear/${gearId}`),
+      api.get<Category[]>("/categories"),
+    ])
+      .then(([gearRes, catRes]) => {
+        const gear = gearRes.data;
+        if (gear) {
+          setForm({
+            name: gear.name,
+            categoryId: gear.categoryId || "",
+            brand: gear.brand || "",
+            description: gear.description || "",
+            pricePerDay: String(gear.pricePerDay),
+            quantity: String(gear.quantity),
+            available: gear.available,
+          });
+          setImageUrls(gear.images || []);
         }
+        setCategories(catRes.data || []);
       })
-      .catch(() => {})
-      .finally(() => setCategoriesLoading(false));
-  }, []);
+      .catch((err) => toast(err.message, "error"))
+      .finally(() => setLoading(false));
+  }, [gearId, router, toast]);
 
   function addImage() {
     const url = imageInput.trim();
@@ -55,32 +90,71 @@ export default function AddGearPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
-    setLoading(true);
-
+    setSaving(true);
     try {
-      await api.post("/provider/gear", {
+      await api.put(`/provider/gear/${gearId}`, {
         name: form.name,
         categoryId: form.categoryId,
         brand: form.brand,
         description: form.description,
         pricePerDay: Number(form.pricePerDay),
         quantity: Number(form.quantity),
+        available: form.available,
         images: imageUrls,
       });
+      toast("Gear updated", "success");
       router.push("/dashboard/provider");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to create gear");
+      toast(err instanceof Error ? err.message : "Failed to update gear", "error");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
+  }
+
+  async function handleToggleAvailability() {
+    setSaving(true);
+    try {
+      await api.put(`/provider/gear/${gearId}`, { available: !form.available });
+      setForm((f) => ({ ...f, available: !f.available }));
+      toast(form.available ? "Gear marked unavailable" : "Gear marked available", "success");
+    } catch (err: unknown) {
+      toast(err instanceof Error ? err.message : "Failed to update gear", "error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-md p-6">
+        <Skeleton className="mb-6 h-8 w-40" />
+        <div className="space-y-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-24 w-full" />
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="mx-auto max-w-md p-6">
-      <h1 className="mb-6 text-2xl font-bold">Add New Gear</h1>
+      <h1 className="mb-6 text-2xl font-bold">Edit Gear</h1>
 
-      {error && <div className="mb-4 rounded bg-red-100 p-3 text-sm text-red-700">{error}</div>}
+      <div className="mb-6 flex items-center justify-between rounded border p-3">
+        <span className="text-sm text-gray-600">Availability</span>
+        <button
+          type="button"
+          onClick={handleToggleAvailability}
+          disabled={saving}
+          className={`rounded px-3 py-1 text-sm text-white disabled:opacity-50 ${
+            form.available ? "bg-green-600" : "bg-gray-500"
+          }`}
+        >
+          {form.available ? "Available" : "Unavailable"}
+        </button>
+      </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -96,23 +170,18 @@ export default function AddGearPage() {
 
         <div>
           <label className="mb-1 block text-sm font-medium">Category</label>
-          {categoriesLoading ? (
-            <Skeleton className="h-10 w-full" />
-          ) : (
-            <select
-              required
-              className="w-full rounded border px-3 py-2"
-              value={form.categoryId}
-              onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-            >
-              {categories.length === 0 && <option value="">No categories yet</option>}
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-          )}
+          <select
+            required
+            className="w-full rounded border px-3 py-2"
+            value={form.categoryId}
+            onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
+          >
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>
@@ -207,10 +276,10 @@ export default function AddGearPage() {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={saving}
           className="w-full rounded bg-black py-2 text-white disabled:opacity-50"
         >
-          {loading ? "Adding..." : "Add Gear"}
+          {saving ? "Saving..." : "Save Changes"}
         </button>
       </form>
     </div>

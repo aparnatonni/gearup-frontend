@@ -5,6 +5,8 @@ import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import StatusBadge, { nextProviderAction } from '@/components/StatusBadge';
+import { useToast } from '@/components/Toast';
+import { Skeleton } from '@/components/Skeleton';
 
 type Order = {
   id: string;
@@ -17,13 +19,13 @@ type Order = {
 
 export default function ProviderOrdersPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   function loadOrders() {
-    setLoading(true);
     api
       .get<Order[]>('/provider/orders')
       .then((res) => setOrders(res.data || []))
@@ -38,7 +40,6 @@ export default function ProviderOrdersPage() {
       return;
     }
     loadOrders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   async function handleUpdateStatus(orderId: string, newStatus: string) {
@@ -47,7 +48,7 @@ export default function ProviderOrdersPage() {
       await api.patch('/provider/orders/' + orderId, { status: newStatus });
       loadOrders();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Failed to update order');
+      toast(err instanceof Error ? err.message : 'Failed to update order', 'error');
     } finally {
       setActionLoadingId(null);
     }
@@ -58,7 +59,14 @@ export default function ProviderOrdersPage() {
   }
 
   if (loading) {
-    return <div className="p-8">Loading orders...</div>;
+    return (
+      <div className="mx-auto max-w-4xl p-8">
+        <Skeleton className="mb-6 h-8 w-44" />
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="mb-3 h-16 w-full" />
+        ))}
+      </div>
+    );
   }
 
   if (error) {

@@ -1,17 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import Cookies from "js-cookie";
 
-export default function Navbar() {
-  const [role, setRole] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
+function subscribe(callback: () => void) {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+}
 
-  useEffect(() => {
-    setRole(Cookies.get("role") || null);
-    setMounted(true);
-  }, []);
+function getSnapshot() {
+  if (typeof document === "undefined") return "";
+  return Cookies.get("role") || "";
+}
+
+function getServerSnapshot() {
+  return "";
+}
+
+export default function Navbar() {
+  const role =
+    useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot) || null;
 
   const dashboardPath =
     role === "PROVIDER"
@@ -36,7 +45,7 @@ export default function Navbar() {
           <Link href="/gear" className="hover:underline">
             Browse Gear
           </Link>
-          {mounted && role ? (
+          {role ? (
             <>
               <Link href={dashboardPath} className="hover:underline">
                 Dashboard
