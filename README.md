@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GearUp Frontend
+
+Gear-rental marketplace frontend built with **Next.js 16 (App Router)** + **React 19** + **Tailwind CSS v4**. Pure client-side app — every page is a `'use client'` component that talks to the GearUp backend via `lib/api.ts`.
 
 ## Getting Started
 
-First, run the development server:
+1. Install dependencies:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+   ```bash
+   npm install
+   ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Create a `.env.local` file with the backend base URL:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+   ```
+   NEXT_PUBLIC_API_URL=https://gearup-backend-a27i.onrender.com/api
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. Run the dev server:
+
+   ```bash
+   npm run dev
+   ```
+
+   Open [http://localhost:3000](http://localhost:3000).
+
+## Scripts
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Dev server |
+| `npm run build` | Production build (fails on TS errors) |
+| `npm run start` | Serve the production build |
+| `npm run lint` | ESLint over the whole project |
+
+## Roles & Routing
+
+- **Customer** → `/dashboard/customer` — browse gear, place rentals, pay for confirmed orders, review returned orders, view payment history.
+- **Provider** → `/dashboard/provider` — manage gear listings, confirm incoming orders, advance order status.
+- **Admin** → `/dashboard/admin` — manage users, moderate gear, oversee rentals.
+
+Order status flow: `PLACED` → `CONFIRMED` → `PAID` → `PICKED_UP` → `RETURNED` (+ `CANCELLED`).
+
+## Admin Credentials
+
+| Email | Password |
+|---|---|
+| `admin@gearup.com` | `admin123` |
+
+## Payments
+
+Stripe Checkout is integrated. When an order is `CONFIRMED`, the customer calls `POST /payments/create` and is redirected to the returned `checkoutUrl`. Stripe sends the user back to `/payment/success` or `/payment/cancel`.
+
+## API Integration
+
+See [`API_INTEGRATION.md`](./API_INTEGRATION.md) for the full map of frontend components to backend endpoints.
 
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Next.js Documentation](https://nextjs.org/docs) — learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) — an interactive Next.js tutorial.
